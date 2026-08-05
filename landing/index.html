@@ -26,6 +26,11 @@
       snaps to dark; inline is not an option under `script-src 'self'`.
     -->
     <script src="/theme.js"></script>
+    <!--
+      Deferred, unlike theme.js: a banner arriving a frame late is fine, whereas
+      the wrong palette arriving a frame late is not.
+    -->
+    <script src="/notice.js" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -94,7 +99,7 @@
           </div>
           <div>
             <span class="fact-value">—</span>
-            <span class="fact-label">Repairs completed</span>
+            <span class="fact-label">Jobs completed</span>
           </div>
           <div>
             <span class="fact-value">—</span>
@@ -125,12 +130,12 @@
 
           <a class="card" href="https://warehouse.makebelievestudio.app">
             <span class="card-title">
-              Repair Desk
+              Warehouse
               <span class="faint" aria-hidden="true">&rarr;</span>
             </span>
             <p>
-              Repair tickets from raise to sign-off, bench bookings, consumable stock,
-              parts ordering and invoicing for third-party work.
+              Tickets from raise to sign-off, bench bookings, consumable stock, parts
+              ordering and invoicing for third-party work.
             </p>
           </a>
 

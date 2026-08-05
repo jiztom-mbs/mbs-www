@@ -439,3 +439,68 @@ a:focus-visible {
     transform: none;
   }
 }
+
+/* --- "Wrong site?" notice --------------------------------------------------- */
+
+/*
+ * Inverted, so it reads as a message from the site rather than as content. It sits
+ * above the sticky header in document order, which means it scrolls away rather
+ * than pinning — deliberate: it is worth seeing once, not worth occupying the top
+ * of the screen forever.
+ */
+.site-notice {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: rgb(var(--ink));
+  color: rgb(var(--paper));
+}
+
+.site-notice-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.site-notice-link {
+  color: rgb(var(--paper));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  /* Wraps to its own line on a phone rather than crushing the sentence. */
+  display: inline-block;
+}
+
+.site-notice-close {
+  margin-left: auto;
+  flex: none;
+  /* 44px touch floor, matching every other control in the three sites. */
+  height: 2.75rem;
+  width: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: rgb(var(--paper));
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.site-notice-close:hover {
+  border-color: rgb(var(--paper) / 0.4);
+}
+
+.site-notice-close:focus-visible {
+  outline: 2px solid rgb(var(--paper));
+  outline-offset: -2px;
+}
+
+@media (min-width: 640px) {
+  .site-notice {
+    padding: 0.75rem 2rem;
+  }
+}
