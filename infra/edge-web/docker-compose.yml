@@ -1,0 +1,48 @@
+# nginx for every site this server publishes.
+#
+# Follows the pattern the rest of /srv already uses: one compose project, joined
+# to the external `edge` network, reached by cloudflared over that network by
+# container name. There are deliberately NO published ports — nothing on this box
+# should be reachable except through the tunnel, and a published port would be.
+#
+# Serves three hostnames from release directories:
+#
+#   /srv/www/<site>/releases/<sha>/   a build
+#   /srv/www/<site>/current           symlink -> the live one
+#
+# The deploy swaps that symlink, so a release is either fully live or not live at
+# all, and a rollback is repointing it.
+#
+# `disable_symlinks off` is required and is why it is stated here rather than left
+# to the default: nginx otherwise refuses to follow `current`, and the failure is a
+# 404 on every page with nothing in the error log that names symlinks.
+
+name: edge-web
+
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    networks: [edge]
+    volumes:
+      # Read-only: nginx has no business writing to a release, and a container
+      # that cannot write cannot be made to serve something it wrote.
+      - /srv/www:/srv/www:ro
+      # Status JSON lives OUTSIDE the release directories on purpose — see
+      # status.conf. A deploy replaces releases; the collector's output must
+      # survive that.
+      - /srv/status-data:/srv/status-data:ro
+      - ./conf.d:/etc/nginx/conf.d:ro
+    healthcheck:
+      # Hits the stub_status endpoint on localhost, which needs no site to be
+      # deployed yet — so the container is healthy from first boot rather than
+      # only once something has been published.
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1/nginx-health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  edge:
+    external: true
