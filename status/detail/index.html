@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Detailed status · Make Believe Studio</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/logo-landing.png" />
+    <link rel="stylesheet" href="/tokens.css" />
+    <link rel="stylesheet" href="/base.css" />
+    <link rel="stylesheet" href="/status.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body>
+    <!--
+      EVERYTHING under /detail/ is protected by one Cloudflare Access policy —
+      this page AND the JSON it reads, which lives at /detail/api/detail.json.
+      That co-location is the whole point: protecting only the page would leave the
+      data readable by anyone who guessed the URL, and the data is the sensitive
+      half. Do not move the JSON to /api/ to "tidy up".
+    -->
+    <header class="site-header">
+      <a href="/" aria-label="Make Believe Studios home">
+        <img
+          class="wordmark wordmark--light"
+          src="/logo-light.png"
+          alt="Make Believe Studios"
+          onerror="this.outerHTML='&lt;span class=&quot;logo-fallback&quot;&gt;MB&lt;/span&gt;'"
+        />
+        <img class="wordmark wordmark--dark" src="/logo-dark.png" alt="" aria-hidden="true" />
+      </a>
+      <nav class="header-nav">
+        <a class="header-link" href="/">Public status</a>
+        <button
+          class="theme-toggle"
+          type="button"
+          data-theme-toggle
+          aria-label="Switch theme"
+        ></button>
+      </nav>
+    </header>
+
+    <main>
+      <section style="padding-top: 2rem">
+        <p class="section-label">Internal</p>
+        <h1 style="font-size: 1.75rem; margin: 0">Detailed status</h1>
+        <p class="lede" id="summary" aria-live="polite" style="margin: 0.5rem 0 0; text-align: left">
+          Loading…
+        </p>
+      </section>
+
+      <section>
+        <p class="section-label">Host</p>
+        <div class="stack stack--host" id="host">
+          <div class="card"><span class="muted">Loading…</span></div>
+        </div>
+      </section>
+
+      <section>
+        <p class="section-label">Containers</p>
+        <div class="table-wrap">
+          <table class="detail-table">
+            <thead>
+              <tr>
+                <th scope="col">Service</th>
+                <th scope="col">State</th>
+                <th scope="col">Uptime</th>
+                <th scope="col">Restarts</th>
+                <th scope="col">Image</th>
+              </tr>
+            </thead>
+            <tbody id="containers">
+              <tr>
+                <td colspan="5" class="muted">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <p class="section-label">Deploys</p>
+        <div class="stack" id="deploys">
+          <div class="card"><span class="muted">Loading…</span></div>
+        </div>
+      </section>
+
+      <footer style="margin-top: 3rem">
+        <span class="faint" id="checked">&nbsp;</span>
+      </footer>
+    </main>
+
+    <script src="/detail/detail.js"></script>
+  </body>
+</html>

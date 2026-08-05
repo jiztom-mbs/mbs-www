@@ -47,6 +47,38 @@ const MOCK = {
   ],
 }
 
+// Shaped exactly like infra/collector writes to /detail/api/detail.json. Values
+// are plausible rather than flattering — the disk is deliberately past the 75%
+// warn band so the meter styling is actually exercised.
+const MOCK_DETAIL = {
+  checked_at: new Date().toISOString(),
+  host: {
+    cpu_pct: 12,
+    mem_used_gb: 9.1,
+    mem_total_gb: 30.6,
+    mem_pct: 30,
+    disk_used_gb: 361,
+    disk_total_gb: 457,
+    disk_pct: 79,
+    load1: 0.42,
+    uptime: '29h',
+  },
+  containers: [
+    { name: 'Database', state: 'up', uptime: '29h', restarts: 0, image: 'supabase/postgres:17.6.1.136' },
+    { name: 'API', state: 'up', uptime: '29h', restarts: 0, image: 'kong/kong:3.9.3' },
+    { name: 'Auth', state: 'up', uptime: '29h', restarts: 0, image: 'supabase/gotrue:v2.189.0' },
+    { name: 'Storage', state: 'up', uptime: '29h', restarts: 1, image: 'supabase/storage-api:v1.60.4' },
+    { name: 'Realtime', state: 'up', uptime: '29h', restarts: 0, image: 'supabase/realtime:v2.102.3' },
+    { name: 'Git', state: 'down', uptime: '—', restarts: 3, image: 'gitea/gitea:1.24' },
+    { name: 'Web', state: 'up', uptime: '2h', restarts: 0, image: 'nginx:alpine' },
+  ],
+  deploys: [
+    { site: 'landing', ref: 'b293ac5', at: new Date(Date.now() - 3600e3).toISOString() },
+    { site: 'status', ref: 'b293ac5', at: new Date(Date.now() - 3600e3).toISOString() },
+    { site: 'warehouse', ref: '5e20be4', at: new Date(Date.now() - 86400e3).toISOString() },
+  ],
+}
+
 function serve(site, port) {
   const docroot = join(root, 'dist', site)
 
@@ -56,6 +88,15 @@ function serve(site, port) {
     if (process.env.MOCK_STATUS === '1' && url.pathname === '/api/status.json') {
       res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' })
       res.end(JSON.stringify({ ...MOCK, checked_at: new Date().toISOString() }))
+      return
+    }
+
+    // In production this path is behind Cloudflare Access. Locally there is no
+    // gate, which is exactly why the detail data lives under /detail/ — one policy
+    // covers the page and the JSON together.
+    if (process.env.MOCK_STATUS === '1' && url.pathname === '/detail/api/detail.json') {
+      res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' })
+      res.end(JSON.stringify({ ...MOCK_DETAIL, checked_at: new Date().toISOString() }))
       return
     }
 

@@ -1,14 +1,14 @@
 /*
- * The handful of primitives both pages need, written against tokens.css.
+ * Shared primitives, written against tokens.css.
  *
  * Hand-written rather than Tailwind: two static pages do not justify a build
  * toolchain, and without one the deploy is a file copy that cannot fail halfway.
  * Class names mirror the utility names used in the apps so the markup reads the
  * same way to anyone moving between the three.
  *
- * Mobile first, then two breakpoints at 640px and 1024px — the same sm/lg stops
- * the apps use, so the three sites break at the same widths rather than at
- * slightly different ones, which is the sort of thing that looks like a bug.
+ * Mobile first, then breakpoints at 640px and 1024px — the same sm/lg stops the
+ * apps use, so the three sites break at identical widths rather than at slightly
+ * different ones, which reads as a bug.
  */
 
 *,
@@ -17,9 +17,13 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Anchor links land below the sticky header rather than under it. */
+  scroll-padding-top: 5rem;
+}
+
 html,
 body {
-  height: 100%;
   margin: 0;
 }
 
@@ -32,57 +36,178 @@ body {
      fade here would make that flash visible rather than hide it. */
 }
 
-main {
-  margin: 0 auto;
-  display: flex;
-  min-height: 100dvh;
-  width: 100%;
-  max-width: 30rem;
-  flex-direction: column;
-  justify-content: center;
-  padding: 2rem 1.25rem;
-}
+/* --- Header ---------------------------------------------------------------- */
 
-.masthead {
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgb(var(--line));
+  /* Opaque, not translucent: text scrolling under a blurred bar is harder to read
+     than text scrolling under a solid one, and this bar has no depth to sell. */
+  background: rgb(var(--paper));
 }
 
-.logo {
-  height: 2rem;
+/*
+ * Two files swapped by CSS rather than by script, matching the apps' header. Doing
+ * it in CSS means the correct one is chosen in the same pass that applies the
+ * theme, so there is no frame where the wrong-contrast mark is visible.
+ */
+.site-header .wordmark {
+  height: 1.75rem;
   width: auto;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.wordmark--dark {
+  display: none;
+}
+
+.dark .wordmark--light {
+  display: none;
+}
+
+.dark .wordmark--dark {
+  display: block;
 }
 
 /* The "MB" badge the Logo component falls back to when an image is missing, so a
    checkout without the assets still renders something deliberate. */
 .logo-fallback {
   display: flex;
-  height: 2rem;
-  width: 2rem;
+  height: 1.75rem;
+  width: 1.75rem;
   align-items: center;
   justify-content: center;
   border-radius: 0.25rem;
   background: rgb(var(--ink));
   color: rgb(var(--paper));
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
-h1 {
-  margin: 0;
-  font-size: 1.5rem;
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.header-link {
+  display: none;
+  padding: 0 0.75rem;
+  height: 2.75rem;
+  align-items: center;
+  border-radius: var(--radius-card);
+  color: rgb(var(--ink-muted));
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.header-link:hover {
+  background: rgb(var(--paper-raised));
+  color: rgb(var(--ink));
+}
+
+/* --- Layout ---------------------------------------------------------------- */
+
+main {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 64rem;
+  padding: 0 1.25rem 4rem;
+}
+
+section {
+  padding-top: 3rem;
+}
+
+.section-label {
+  margin: 0 0 1rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--ink-muted));
+}
+
+/* --- Hero ------------------------------------------------------------------ */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 0 1rem;
+}
+
+/*
+ * The seal carries the studio name, so it is the headline — sized to be read as
+ * one rather than as an icon beside one. `invert` in dark mode follows the Logo
+ * component's `landing` variant in the apps: a single monochrome mark, flipped,
+ * rather than two files to keep in step.
+ */
+.hero-mark {
+  height: 9rem;
+  width: auto;
+  object-fit: contain;
+}
+
+.dark .hero-mark {
+  filter: invert(1);
+}
+
+.hero h1 {
+  margin: 1.5rem 0 0;
+  font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.lede {
+.hero .lede {
+  margin: 0.75rem auto 0;
+  max-width: 34rem;
   color: rgb(var(--ink-muted));
-  font-size: 0.9375rem;
-  margin: 0.5rem 0 2rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* --- Text ------------------------------------------------------------------ */
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.prose p {
+  margin: 0 0 1rem;
+  max-width: 42rem;
+  color: rgb(var(--ink-muted));
+  line-height: 1.7;
+}
+
+/* Links inside prose take the ink colour. The browser default blue is the one
+   colour in the whole palette that is not ours, and it shows. */
+.prose a,
+.site-footer a,
+main a:not(.card):not(.header-link) {
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+.prose a:hover,
+main a:not(.card):not(.header-link):hover {
+  text-decoration-thickness: 2px;
 }
 
 .muted {
@@ -95,6 +220,8 @@ h1 {
   font-size: 0.75rem;
 }
 
+/* --- Cards ----------------------------------------------------------------- */
+
 .stack {
   display: grid;
   gap: 0.75rem;
@@ -105,7 +232,7 @@ h1 {
   border: 1px solid rgb(var(--line));
   border-radius: var(--radius-card);
   background: rgb(var(--paper-raised));
-  padding: 1rem;
+  padding: 1.25rem;
   text-decoration: none;
   color: inherit;
   transition: border-color 120ms ease;
@@ -118,11 +245,14 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .card p {
-  margin: 0.25rem 0 0;
+  margin: 0.375rem 0 0;
+  color: rgb(var(--ink-muted));
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
 a.card:hover {
@@ -136,17 +266,40 @@ a.card:active {
 }
 
 a.card:focus-visible,
-button:focus-visible {
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid rgb(var(--ink));
   outline-offset: 2px;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* --- Facts strip ----------------------------------------------------------- */
+
+.facts {
+  display: grid;
   gap: 0.75rem;
+  border-top: 1px solid rgb(var(--line));
+  border-bottom: 1px solid rgb(var(--line));
+  padding: 1.5rem 0;
 }
+
+.fact-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  display: block;
+}
+
+.fact-label {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(var(--ink-muted));
+}
+
+/* --- Controls -------------------------------------------------------------- */
 
 .theme-toggle {
   /* 44px: the same touch floor the apps use, so this is comfortable on a phone. */
@@ -169,52 +322,115 @@ button:focus-visible {
   color: rgb(var(--ink));
 }
 
-footer {
-  margin-top: 2.5rem;
-  text-align: center;
+/* --- Footer ---------------------------------------------------------------- */
+
+.site-footer {
+  border-top: 1px solid rgb(var(--line));
+  margin-top: 4rem;
+  padding: 2rem 1.25rem;
+}
+
+.footer-inner {
+  margin: 0 auto;
+  max-width: 64rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.footer-links a {
+  color: rgb(var(--ink-muted));
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.footer-links a:hover {
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* --- Tablet and up --------------------------------------------------------- */
+
 @media (min-width: 640px) {
+  .site-header {
+    padding: 0.75rem 2rem;
+  }
+
   main {
-    max-width: 40rem;
-    padding: 3rem 2rem;
+    padding: 0 2rem 5rem;
   }
 
-  h1 {
-    font-size: 2rem;
+  .header-link {
+    display: inline-flex;
   }
 
-  .lede {
-    font-size: 1rem;
+  .hero {
+    padding: 4rem 0 1.5rem;
+  }
+
+  .hero-mark {
+    height: 12rem;
+  }
+
+  .hero h1 {
+    font-size: 2.25rem;
+  }
+
+  .hero .lede {
+    font-size: 1.0625rem;
+  }
+
+  .facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .footer-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 
 /* --- Desktop --------------------------------------------------------------- */
+
 @media (min-width: 1024px) {
-  main {
-    max-width: 64rem;
-    padding: 4rem 2.5rem;
+  .hero {
+    padding: 5rem 0 2rem;
   }
 
-  h1 {
-    font-size: 2.5rem;
+  .hero-mark {
+    height: 15rem;
   }
 
-  /* Three across, so the cards read as one row of choices rather than a list to
+  .hero h1 {
+    font-size: 2.75rem;
+  }
+
+  section {
+    padding-top: 4rem;
+  }
+
+  /* Three across, so the systems read as one row of choices rather than a list to
      scroll. Below this they stack, which is what a phone wants. */
   .stack--wide {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
   }
-
-  .card {
-    padding: 1.25rem;
-  }
 }
 
 /* Someone who has asked for less motion should not get the press animation. */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   a.card {
     transition: none;
   }
