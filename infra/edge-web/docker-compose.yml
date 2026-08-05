@@ -25,13 +25,18 @@ services:
     restart: unless-stopped
     networks: [edge]
     volumes:
+      # Paths are parameterised so this can run before /srv exists. /srv is
+      # root-owned and the defaults below are the intended home; set WWW_ROOT and
+      # STATUS_DATA_ROOT in .env to run it out of a user directory instead. The
+      # container-side paths never change, so nginx.conf does not care which.
+      #
       # Read-only: nginx has no business writing to a release, and a container
       # that cannot write cannot be made to serve something it wrote.
-      - /srv/www:/srv/www:ro
+      - ${WWW_ROOT:-/srv/www}:/srv/www:ro
       # Status JSON lives OUTSIDE the release directories on purpose — see
       # status.conf. A deploy replaces releases; the collector's output must
       # survive that.
-      - /srv/status-data:/srv/status-data:ro
+      - ${STATUS_DATA_ROOT:-/srv/status-data}:/srv/status-data:ro
       - ./conf.d:/etc/nginx/conf.d:ro
     healthcheck:
       # Hits the stub_status endpoint on localhost, which needs no site to be
