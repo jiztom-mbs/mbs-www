@@ -1,0 +1,31 @@
+# Reads container and host state, writes the two JSON files the status pages serve.
+#
+# The security shape of this service matters more than what it does:
+#
+#   network_mode: none   It holds the Docker socket, which is root-equivalent. With
+#                        no network it cannot be reached by anything — not from the
+#                        internet, not from another container, not from the tunnel.
+#                        The only way its output leaves is the file nginx serves.
+#
+#   docker.sock  :ro     Conventional rather than absolute — the socket is an API,
+#                        and read-only on the file does not make the API read-only.
+#                        `network_mode: none` is the control that actually holds.
+#
+#   /proc        :ro     Host CPU, memory, load and uptime. Narrower than mounting
+#                        the host root, which is the other common way to get these.
+#
+# Disk is read with `df` on the output directory, whose bind mount reports the host
+# filesystem holding it — so no extra mount is needed for it at all.
+
+name: collector
+
+services:
+  collector:
+    build: .
+    restart: unless-stopped
+    network_mode: none
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      # The only writable mount, and the only thing that leaves this container.
+      - ${STATUS_DATA_ROOT:-/srv/status-data}:/out
