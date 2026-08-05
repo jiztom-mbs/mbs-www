@@ -6,52 +6,82 @@
     <title>Status · Make Believe Studio</title>
     <meta name="description" content="Service status for Make Believe Studio." />
     <meta name="robots" content="noindex, nofollow" />
-    <link rel="icon" href="/logo-light.png" />
+    <link rel="icon" href="/logo-landing.png" />
     <link rel="stylesheet" href="/tokens.css" />
     <link rel="stylesheet" href="/base.css" />
     <link rel="stylesheet" href="/status.css" />
     <script src="/theme.js"></script>
   </head>
   <body>
-    <main>
-      <div class="masthead">
+    <!--
+      The same header as the landing and detail pages. This page previously used a
+      bare `.logo` class that no longer exists in base.css, so the seal rendered at
+      the asset's natural 5257px — a good argument for the three pages sharing one
+      header structure rather than each inventing its own.
+    -->
+    <header class="site-header">
+      <a href="https://www.makebelievestudio.app" aria-label="Make Believe Studios home">
         <img
-          class="logo"
-          src="/logo-landing.png"
+          class="wordmark wordmark--light"
+          src="/logo-light.png"
           alt="Make Believe Studios"
           onerror="this.outerHTML='&lt;span class=&quot;logo-fallback&quot;&gt;MB&lt;/span&gt;'"
         />
-        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"></button>
-      </div>
+        <img class="wordmark wordmark--dark" src="/logo-dark.png" alt="" aria-hidden="true" />
+      </a>
+      <nav class="header-nav">
+        <a class="header-link" href="https://www.makebelievestudio.app">Home</a>
+        <button
+          class="theme-toggle"
+          type="button"
+          data-theme-toggle
+          aria-label="Switch theme"
+        ></button>
+      </nav>
+    </header>
 
-      <h1>System status</h1>
-      <!--
-        aria-live so a screen reader is told when the summary changes, rather than
-        the update happening silently. polite: it can wait for a pause.
-      -->
-      <p class="lede" id="summary" aria-live="polite">Checking…</p>
+    <main>
+      <section style="padding-top: 2rem">
+        <p class="section-label">Status</p>
+        <h1 style="font-size: 1.75rem; margin: 0">System status</h1>
+        <!--
+          aria-live so a screen reader is told when the summary changes, rather
+          than the update happening silently. polite: it can wait for a pause.
+        -->
+        <p
+          class="lede"
+          id="summary"
+          aria-live="polite"
+          style="margin: 0.5rem 0 0; text-align: left"
+        >
+          Checking…
+        </p>
+      </section>
 
-      <!--
-        Rendered by status.js from /api/status.json. The empty state says
-        "unknown", never "up" — a status page that defaults to green is worse than
-        no status page, because it is confidently wrong exactly when it matters.
-      -->
-      <ul class="services stack" id="services">
-        <li class="card service">
-          <span class="service-name muted">Loading…</span>
-        </li>
-      </ul>
+      <section>
+        <!--
+          Rendered by status.js from /api/status.json. The empty state says
+          "unknown", never "up" — a status page that defaults to green is worse
+          than no status page, because it is confidently wrong exactly when it
+          matters.
+        -->
+        <ul class="services stack" id="services">
+          <li class="card service">
+            <span class="service-name muted">Loading…</span>
+          </li>
+        </ul>
+      </section>
 
-      <footer class="faint">
-        <span id="checked">&nbsp;</span>
+      <footer style="margin-top: 2.5rem">
+        <span class="faint" id="checked">&nbsp;</span>
         <!--
           Always shown. Cloudflare Access decides whether the click succeeds, so
-          there is nothing to hide here — and a link that appears only for staff
-          would need the page to know who is reading it, which it deliberately
+          there is nothing to hide here — and a link that appeared only for staff
+          would need this page to know who is reading it, which it deliberately
           does not.
         -->
-        <p style="margin: 0.5rem 0 0">
-          <a href="/detail/" style="color: inherit">Detailed status</a> — staff sign-in
+        <p class="faint" style="margin: 0.5rem 0 0">
+          <a href="/detail/">Detailed status</a> — staff sign-in
         </p>
       </footer>
     </main>
