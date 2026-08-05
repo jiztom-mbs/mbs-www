@@ -1,0 +1,47 @@
+/*
+ * Design tokens, copied verbatim from MBS Repair Desk's src/index.css and
+ * tailwind.config.ts.
+ *
+ * Deliberately duplicated rather than imported. These pages share no build with
+ * either app and have no package in common, so a copy that is replaced in all
+ * three places when the palette changes is honest; an import that silently drifts
+ * is not. The same reasoning is written on the Logo component in the Repair Desk
+ * about its image files.
+ *
+ * `ink` is foreground, `paper` is background, and dark mode inverts them. Values
+ * are space-separated RGB channels so they can carry an alpha at the point of use.
+ */
+
+@font-face {
+  font-family: 'Nimbus Sans';
+  src: url('/fonts/NimbusSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  /* swap, not block: the page renders in the fallback immediately rather than
+     showing nothing while the file loads. */
+  font-display: swap;
+}
+
+:root {
+  /* Light theme — black ink on white paper */
+  --ink: 10 10 10;
+  --ink-muted: 90 90 90;
+  --ink-faint: 140 140 140;
+  --paper: 255 255 255;
+  --paper-raised: 250 250 250;
+  --line: 220 220 220;
+
+  --radius-card: 0.5rem;
+  --font-sans: 'Nimbus Sans', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.dark {
+  /* Dark theme — inverted */
+  --ink: 245 245 245;
+  --ink-muted: 165 165 165;
+  --ink-faint: 115 115 115;
+  --paper: 10 10 10;
+  --paper-raised: 24 24 24;
+  --line: 48 48 48;
+}

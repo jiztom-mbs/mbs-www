@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Make Believe Studio</title>
+    <meta name="description" content="Make Believe Studio internal systems." />
+    <!-- Internal tooling; keep it out of search results. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/logo-light.png" />
+    <link rel="stylesheet" href="/tokens.css" />
+    <link rel="stylesheet" href="/base.css" />
+    <!--
+      Synchronous on purpose. Deferring it paints the light palette first and then
+      snaps to dark; inline is not an option under `script-src 'self'`.
+    -->
+    <script src="/theme.js"></script>
+  </head>
+  <body>
+    <main>
+      <div class="masthead">
+        <!--
+          onerror mirrors the Logo component's fallback in the apps: a checkout
+          without the image assets still renders a deliberate "MB" badge rather
+          than a broken-image icon.
+        -->
+        <img
+          class="logo"
+          src="/logo-landing.png"
+          alt="Make Believe Studios"
+          onerror="this.outerHTML='&lt;span class=&quot;logo-fallback&quot;&gt;MB&lt;/span&gt;'"
+        />
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"></button>
+      </div>
+
+      <h1>Make Believe Studio</h1>
+      <p class="lede">Internal systems.</p>
+
+      <!-- stack--wide goes to three columns at 1024px and stacks below it. -->
+      <nav class="stack stack--wide">
+        <a class="card" href="https://inventory.makebelievestudio.com">
+          <span class="card-title">
+            Inventory Control
+            <span class="faint" aria-hidden="true">&rarr;</span>
+          </span>
+          <p class="muted">Assets, locations, check-outs and listings.</p>
+        </a>
+
+        <a class="card" href="https://warehouse.makebelievestudio.com">
+          <span class="card-title">
+            Repair Desk
+            <span class="faint" aria-hidden="true">&rarr;</span>
+          </span>
+          <p class="muted">Repair tickets, bench work, stock and invoicing.</p>
+        </a>
+
+        <a class="card" href="https://status.makebelievestudio.com">
+          <span class="card-title">
+            System status
+            <span class="faint" aria-hidden="true">&rarr;</span>
+          </span>
+          <p class="muted">Whether the services are up.</p>
+        </a>
+      </nav>
+
+      <footer class="faint">Make Believe Studio</footer>
+    </main>
+  </body>
+</html>

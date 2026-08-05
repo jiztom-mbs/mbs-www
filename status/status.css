@@ -1,0 +1,83 @@
+/*
+ * Status-page specifics. Everything shared lives in base.css.
+ *
+ * State is carried by fill and weight rather than colour alone: a hollow ring for
+ * up, a filled dot for down, plus the word itself. Red/green on its own fails for
+ * the ~8% of men with colour-vision deficiency, and these pages are read on a
+ * phone in a workshop under whatever lighting exists.
+ */
+
+.services {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.service-name {
+  font-weight: 500;
+}
+
+.service-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: rgb(var(--ink-muted));
+  white-space: nowrap;
+}
+
+.dot {
+  height: 0.625rem;
+  width: 0.625rem;
+  flex: none;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--ink-faint));
+}
+
+/* Up is the quiet state: an outline, no fill. Nothing to look at when all is well. */
+.state-up .dot {
+  border-color: rgb(var(--ink-muted));
+}
+
+/* Down is the loud one: filled, full-contrast, and the row border goes solid ink
+   so it is findable by scanning rather than by reading every line. */
+.state-down .dot {
+  background: rgb(var(--ink));
+  border-color: rgb(var(--ink));
+}
+
+.state-down {
+  border-color: rgb(var(--ink));
+}
+
+.state-down .service-state {
+  color: rgb(var(--ink));
+  font-weight: 600;
+}
+
+/* Unknown: we could not reach the collector. Deliberately distinct from "up",
+   because reporting a stale green is the one failure a status page must not have. */
+.state-unknown .dot {
+  border-style: dashed;
+}
+
+.state-unknown .service-state {
+  color: rgb(var(--ink-faint));
+}
+
+@media (min-width: 1024px) {
+  .services {
+    /* Two columns on a wide screen so the list does not become a thin ribbon
+       down the middle of a 27-inch monitor. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+  }
+}

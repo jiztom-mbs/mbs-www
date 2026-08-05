@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Status · Make Believe Studio</title>
+    <meta name="description" content="Service status for Make Believe Studio." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/logo-light.png" />
+    <link rel="stylesheet" href="/tokens.css" />
+    <link rel="stylesheet" href="/base.css" />
+    <link rel="stylesheet" href="/status.css" />
+    <script src="/theme.js"></script>
+  </head>
+  <body>
+    <main>
+      <div class="masthead">
+        <img
+          class="logo"
+          src="/logo-landing.png"
+          alt="Make Believe Studios"
+          onerror="this.outerHTML='&lt;span class=&quot;logo-fallback&quot;&gt;MB&lt;/span&gt;'"
+        />
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"></button>
+      </div>
+
+      <h1>System status</h1>
+      <!--
+        aria-live so a screen reader is told when the summary changes, rather than
+        the update happening silently. polite: it can wait for a pause.
+      -->
+      <p class="lede" id="summary" aria-live="polite">Checking…</p>
+
+      <!--
+        Rendered by status.js from /api/status.json. The empty state says
+        "unknown", never "up" — a status page that defaults to green is worse than
+        no status page, because it is confidently wrong exactly when it matters.
+      -->
+      <ul class="services stack" id="services">
+        <li class="card service">
+          <span class="service-name muted">Loading…</span>
+        </li>
+      </ul>
+
+      <footer class="faint">
+        <span id="checked">&nbsp;</span>
+      </footer>
+    </main>
+
+    <script src="/status.js"></script>
+  </body>
+</html>

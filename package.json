@@ -1,0 +1,12 @@
+{
+  "name": "mbs-www",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Landing and status pages for Make Believe Studio.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "npm run build && node scripts/preview.mjs",
+    "preview:status": "npm run build && MOCK_STATUS=1 node scripts/preview.mjs"
+  }
+}
