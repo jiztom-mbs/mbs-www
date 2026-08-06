@@ -1,0 +1,35 @@
+# Push-to-deploy receiver.
+#
+# Networking is the security design. This joins ONLY the `deploy` network, which
+# Gitea is also attached to and nothing else is — so the endpoint is reachable by
+# Gitea and by nothing else on the box, let alone from the internet. There is no
+# published port and no tunnel hostname pointing at it.
+#
+# That matters because it holds the Docker socket, which is root-equivalent. It is
+# deliberately NOT on `edge`: a container with the socket must not share a network
+# with the one cloudflared forwards the internet into.
+#
+# The HMAC check in deployer.mjs is the second lock, not the first.
+
+name: deployer
+
+services:
+  deployer:
+    build: .
+    restart: unless-stopped
+    networks: [deploy]
+    env_file: .env
+    environment:
+      # In-container paths. The *_HOST pair below is what `docker run -v` needs,
+      # because those mounts are resolved by the host daemon, not by this
+      # filesystem — see the note at the top of deploy.sh.
+      DEPLOY_ROOT: /deploy
+      WWW_ROOT: /www
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DEPLOY_ROOT_HOST:-/srv/deploy}:/deploy
+      - ${WWW_ROOT_HOST:-/srv/www}:/www
+
+networks:
+  deploy:
+    external: true
