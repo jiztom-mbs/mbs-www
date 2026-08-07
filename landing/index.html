@@ -26,11 +26,6 @@
       snaps to dark; inline is not an option under `script-src 'self'`.
     -->
     <script src="/theme.js"></script>
-    <!--
-      Deferred, unlike theme.js: a banner arriving a frame late is fine, whereas
-      the wrong palette arriving a frame late is not.
-    -->
-    <script src="/notice.js" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -49,9 +44,16 @@
         <img class="wordmark wordmark--dark" src="/logo-dark.png" alt="" aria-hidden="true" />
       </a>
       <nav class="header-nav">
-        <a class="header-link" href="#studio">Studio</a>
-        <a class="header-link" href="#systems">Systems</a>
-        <a class="header-link" href="https://status.makebelievestudio.app">Status</a>
+        <!--
+          Says what this is before anyone reads further. Someone who wanted the
+          studio now knows within a second that they are in the wrong place, and
+          the button beside it is where they should go.
+        -->
+        <span class="portal-label">Employee portal</span>
+        <a class="button-outline" href="https://www.makebelievestudio.com">
+          Studio site
+          <span aria-hidden="true">&#8599;</span>
+        </a>
         <button
           class="theme-toggle"
           type="button"
@@ -63,50 +65,9 @@
 
     <main>
       <div class="hero">
-        <!-- The seal carries the name, so it is the headline rather than an icon. -->
+        <!-- The seal carries the name, so nothing else needs to. -->
         <img class="hero-mark" src="/logo-landing.png" alt="Make Believe Studios" />
-        <h1>Recording, production, and a bench that keeps it running.</h1>
-        <p class="lede">
-          Make Believe Studio is a working studio. We record and produce, we look after a
-          room full of instruments and outboard gear, and we repair it ourselves when it
-          stops behaving.
-        </p>
       </div>
-
-      <section id="studio">
-        <p class="section-label">The studio</p>
-        <div class="prose">
-          <h2>Gear that is used, not displayed</h2>
-          <p>
-            Amplifiers, microphones and outboard that earn their place by being tracked,
-            maintained and fixed rather than admired. Every piece is catalogued, its
-            location known, and its repair history kept — so when something fails
-            mid-session we know what it is, where it has been, and what was last done to
-            it.
-          </p>
-          <p>
-            We take in third-party gear too. A customer's amp is logged, photographed on
-            arrival and given its own tag, so its condition when it reached us is a matter
-            of record rather than of memory.
-          </p>
-        </div>
-
-        <!-- Replace these with real figures, or delete the strip entirely. -->
-        <div class="facts">
-          <div>
-            <span class="fact-value">—</span>
-            <span class="fact-label">Assets tracked</span>
-          </div>
-          <div>
-            <span class="fact-value">—</span>
-            <span class="fact-label">Jobs completed</span>
-          </div>
-          <div>
-            <span class="fact-value">—</span>
-            <span class="fact-label">Years running</span>
-          </div>
-        </div>
-      </section>
 
       <section id="systems">
         <p class="section-label">Systems</p>
@@ -169,7 +130,7 @@
       <div class="footer-inner">
         <span class="faint">&copy; Make Believe Studio</span>
         <div class="footer-links">
-          <a href="#studio">Studio</a>
+          <a href="https://www.makebelievestudio.com">makebelievestudio.com</a>
           <a href="#systems">Systems</a>
           <a href="https://status.makebelievestudio.app">Status</a>
           <a href="mailto:hello@makebelievestudio.com">Contact</a>
