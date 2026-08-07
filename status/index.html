@@ -41,18 +41,17 @@
     </header>
 
     <main>
-      <section style="padding-top: 2rem">
+      <section class="section--tight">
         <p class="section-label">Status</p>
-        <h1 style="font-size: 1.75rem; margin: 0">System status</h1>
+        <h1 class="page-title">System status</h1>
         <!--
           aria-live so a screen reader is told when the summary changes, rather
           than the update happening silently. polite: it can wait for a pause.
         -->
         <p
-          class="lede"
+          class="lede lede--left"
           id="summary"
           aria-live="polite"
-          style="margin: 0.5rem 0 0; text-align: left"
         >
           Checking…
         </p>
@@ -72,7 +71,7 @@
         </ul>
       </section>
 
-      <footer style="margin-top: 2.5rem">
+      <footer class="footer--spaced">
         <span class="faint" id="checked">&nbsp;</span>
         <!--
           Always shown. Cloudflare Access decides whether the click succeeds, so
@@ -80,7 +79,7 @@
           would need this page to know who is reading it, which it deliberately
           does not.
         -->
-        <p class="faint" style="margin: 0.5rem 0 0">
+        <p class="faint note">
           <a href="/detail/">Detailed status</a> — staff sign-in
         </p>
       </footer>

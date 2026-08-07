@@ -504,3 +504,42 @@ a:focus-visible {
     padding: 0.75rem 2rem;
   }
 }
+
+/* --- Utilities replacing inline styles -------------------------------------
+ *
+ * These exist because the CSP is `style-src 'self'` with no 'unsafe-inline', so a
+ * style="" attribute is silently dropped by the browser — the page still renders,
+ * just with the spacing missing, which is the kind of fault that survives review.
+ * Weakening the policy to allow them would have been the other option, and a worse
+ * one: inline style is also how injected markup styles itself. */
+
+.section--tight {
+  padding-top: 2rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+.lede--left {
+  margin: 0.5rem 0 0;
+  text-align: left;
+}
+
+.section-intro {
+  margin: 0 0 1.5rem;
+  max-width: 42rem;
+}
+
+.footer--spaced {
+  margin-top: 2.5rem;
+}
+
+.footer--roomy {
+  margin-top: 3rem;
+}
+
+.note {
+  margin: 0.5rem 0 0;
+}
