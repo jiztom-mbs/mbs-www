@@ -69,6 +69,9 @@ function headersFor(site) {
     '  Referrer-Policy: strict-origin-when-cross-origin',
     '  Strict-Transport-Security: max-age=31536000; includeSubDomains',
     '  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()',
+    // Applies to every response, including JSON and images — a meta tag only
+    // works in HTML, and robots.txt is a request rather than an instruction.
+    '  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet',
     `  Content-Security-Policy: ${csp}`,
     '',
     '# Fingerprinted and immutable; the HTML that points at them must never be cached.',
@@ -97,6 +100,13 @@ const ref = (process.env.COMMIT_REF ?? '').slice(0, 7) || 'local'
 for (const site of SITES) {
   writeFileSync(join(DIST, site, 'build.txt'), `${ref}\n`)
   writeFileSync(join(DIST, site, '_headers'), headersFor(site))
+  // Nothing on this domain is for the public web. robots.txt asks politely; the
+  // X-Robots-Tag header in headersFor() is what applies to non-HTML files, which
+  // robots.txt cannot describe and a meta tag cannot reach.
+  writeFileSync(
+    join(DIST, site, 'robots.txt'),
+    ['# Internal systems. Not for indexing.', 'User-agent: *', 'Disallow: /', ''].join('\n'),
+  )
 }
 
 // Bake the data origin into the status page. A placeholder in the source keeps the

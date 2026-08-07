@@ -14,6 +14,12 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 add_header Permissions-Policy "camera=(), geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()" always;
 
+# Nothing on makebelievestudio.app is for the public web. This covers every
+# response, including JSON and images — a meta tag only exists in HTML, and
+# robots.txt is a request a crawler may ignore. `noarchive, nosnippet` also keeps
+# anything that does slip through out of caches and search previews.
+add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet" always;
+
 # No 'unsafe-inline' in script-src: theme.js, status.js and notice.js are all
 # external files precisely so this can stay strict.
 add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'" always;
