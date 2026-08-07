@@ -99,6 +99,23 @@ if [ "$SITE" = warehouse ] && [ ! -f "$BUILT/headers.nginx.conf" ]; then
     exit 1
 fi
 
+# --- Validate before publishing ----------------------------------------------
+#
+# A build can exit 0 and still be useless: an empty index.html, or one referencing
+# a bundle that was not emitted. Checking here costs nothing and means the live
+# release is never replaced by something already known to be broken.
+[ -s "$BUILT/index.html" ] || {
+    echo "deploy: $SITE build has no index.html — refusing to publish" >&2; exit 1; }
+
+# Every local script/style the HTML references must actually exist in the output.
+# This is what catches a half-finished bundle, which is otherwise invisible until
+# a browser loads the page.
+MISSING=0
+for ref in $(sed -n 's/.*\(src\|href\)="\(\/[^"]*\.\(js\|css\)\)".*/\2/p' "$BUILT/index.html" | sort -u); do
+    [ -f "$BUILT$ref" ] || { echo "deploy: missing asset $ref" >&2; MISSING=1; }
+done
+[ "$MISSING" -eq 0 ] || { echo "deploy: $SITE build is incomplete — refusing to publish" >&2; exit 1; }
+
 # --- Publish -----------------------------------------------------------------
 SHORT=$(echo "$SHA" | cut -c1-7)
 DEST="$WWW_ROOT/$SITE/releases/$SHORT"
@@ -111,10 +128,44 @@ cp -r "$BUILT" "$DEST"
 # does not resolve inside the container — every page 404s with nothing in the
 # error log naming the cause.
 cd "$WWW_ROOT/$SITE"
+
+# What is live now, so it can be put back if the new one does not answer.
+PREVIOUS=$(readlink current 2>/dev/null || true)
+
 ln -sfn "releases/$SHORT" current.tmp
 mv -Tf current.tmp current
 
-echo "deploy: $SITE now serving $SHORT"
+# --- Smoke test the live site, and roll back if it fails ----------------------
+#
+# The swap is atomic, so this is the first moment the new release is reachable.
+# Asking nginx for it through the real vhost exercises the whole path — symlink
+# resolution, the docroot, the CSP include for the Warehouse — none of which the
+# pre-swap checks can see.
+#
+# A one-second exposure to a broken release is worth far more than shipping one
+# that stays broken until somebody notices.
+HOST_HEADER="${SITE}.makebelievestudio.app"
+[ "$SITE" = landing ] && HOST_HEADER="www.makebelievestudio.app"
+
+CODE=$(docker run --rm --network edge curlimages/curl:latest \
+    -s -o /dev/null -w '%{http_code}' --max-time 10 \
+    -H "Host: $HOST_HEADER" "http://edge-web-nginx-1/" 2>/dev/null || echo 000)
+
+if [ "$CODE" != "200" ]; then
+    echo "deploy: $SITE returned HTTP $CODE after swap" >&2
+    if [ -n "$PREVIOUS" ]; then
+        ln -sfn "$PREVIOUS" current.tmp
+        mv -Tf current.tmp current
+        echo "deploy: rolled back to $PREVIOUS" >&2
+    else
+        # Nothing to go back to — the first deploy of this site. Leave it in place
+        # and say so, rather than removing the symlink and serving nothing at all.
+        echo "deploy: no previous release to roll back to; leaving $SHORT live" >&2
+    fi
+    exit 1
+fi
+
+echo "deploy: $SITE now serving $SHORT (HTTP $CODE)"
 
 # --- Prune -------------------------------------------------------------------
 # Keep a few to roll back to; releases are whole copies and the disk is not free.

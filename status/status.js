@@ -11,6 +11,11 @@
  * because it is confidently wrong at exactly the moment someone is checking.
  */
 ;(function () {
+  // Empty when served from the server itself, where these are same-origin paths.
+  // Replaced at build time with the data host when the page is published to
+  // Netlify, which cannot serve them — see scripts/build.mjs.
+  var API_BASE = '__STATUS_API__'.indexOf('__') === 0 ? '' : '__STATUS_API__'
+
   var REFRESH_MS = 30000
   // Older than this and the collector has stopped, whatever the file says.
   var STALE_MS = 150000
@@ -88,7 +93,7 @@
     // cache: no-store so a refresh is a real one. nginx also sends no-store, but
     // relying on only one of the two is how a status page ends up showing an
     // hour-old snapshot.
-    fetch('/api/status.json', { cache: 'no-store' })
+    fetch(API_BASE + '/api/status.json', { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status)
         return r.json()

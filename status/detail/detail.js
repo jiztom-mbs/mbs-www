@@ -11,6 +11,11 @@
  * unknown, never as healthy.
  */
 ;(function () {
+  // Empty when served from the server itself, where these are same-origin paths.
+  // Replaced at build time with the data host when the page is published to
+  // Netlify, which cannot serve them — see scripts/build.mjs.
+  var API_BASE = '__STATUS_API__'.indexOf('__') === 0 ? '' : '__STATUS_API__'
+
   var REFRESH_MS = 15000
   var STALE_MS = 90000
 
@@ -142,7 +147,7 @@
   }
 
   function poll() {
-    fetch('/detail/api/detail.json', { cache: 'no-store' })
+    fetch(API_BASE + '/detail/api/detail.json', { cache: 'no-store' })
       .then(function (r) {
         // 302 to a Cloudflare login means the Access session has lapsed. Say so,
         // rather than showing an empty page that looks like an outage.
