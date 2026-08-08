@@ -24,8 +24,14 @@ const BRANCH = process.env.DEPLOY_BRANCH ?? 'refs/heads/main'
 // deriving the site from the payload: the payload is attacker-influenced if the
 // secret ever leaks, and "deploy any name you like into the web root" is a much
 // worse outcome than "deploy the wrong one of two known sites".
+//
+// mbs-www builds `status` only. The landing page and the public status page are
+// served by Netlify, so building them here would put a second copy on a second
+// hostname to go stale and get bookmarked. What this server still owns is the
+// gated /detail/ view, which lives inside the status build and must stay
+// same-origin with the data it reads.
 const SITES = {
-  'MakeBelieveStudio/mbs-www': ['landing', 'status'],
+  'MakeBelieveStudio/mbs-www': ['status'],
   'MakeBelieveStudio/MBSWareHouse': ['warehouse'],
 }
 
