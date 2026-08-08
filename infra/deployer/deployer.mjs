@@ -132,6 +132,15 @@ createServer((req, res) => {
       return
     }
 
+    // Gitea's "Test Delivery" sends forty zeros. It passes the format check above
+    // and then fails at `git reset`, which reports a FAILED deploy for what was a
+    // successful test — the one message most likely to be read as a real fault.
+    if (/^0{40}$/.test(sha)) {
+      console.log('deployer: test delivery accepted (no commit to deploy)')
+      res.writeHead(200).end('test delivery ok — signature verified, nothing to deploy\n')
+      return
+    }
+
     for (const site of sites) queue.push({ site, sha })
     // Reply immediately. Gitea times webhooks out, and a build takes far longer
     // than it will wait — a slow 200 shows up as a failed delivery.
