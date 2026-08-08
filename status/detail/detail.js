@@ -120,19 +120,56 @@
     })
   }
 
+  /**
+   * What is live, and how the last attempt ended — two facts, not one.
+   *
+   * They disagree exactly when it matters most. A rolled-back deploy leaves the
+   * previous good release serving while the last attempt reads `failed`: reporting
+   * only the log would imply the site is down when it is not, and reporting only
+   * the symlink would hide that a deploy broke.
+   */
   function renderDeploys(list) {
     deploysEl.textContent = ''
     if (!list || list.length === 0) {
       deploysEl.appendChild(el('div', 'card', 'No deploys recorded yet.'))
       return
     }
+
     list.forEach(function (d) {
-      var card = el('div', 'card')
+      var failed = d.status === 'failed' || d.status === 'rolled_back'
+      var card = el('div', 'card deploy' + (failed ? ' state-down' : ''))
+
       var title = el('span', 'card-title')
       title.appendChild(el('span', null, d.site))
-      title.appendChild(el('span', 'mono faint', d.ref || '—'))
+
+      var badge = el('span', 'deploy-status deploy-status--' + (d.status || 'unknown'))
+      badge.textContent =
+        d.status === 'published' ? 'live'
+        : d.status === 'rolled_back' ? 'rolled back'
+        : d.status === 'failed' ? 'failed'
+        : 'unknown'
+      title.appendChild(badge)
       card.appendChild(title)
-      card.appendChild(el('p', null, d.at ? 'Deployed ' + relative(d.at) : 'Time unknown'))
+
+      // The live release is the headline: it is what visitors are being served.
+      var live = el('p', 'deploy-line')
+      live.appendChild(el('span', 'faint', 'serving '))
+      live.appendChild(el('span', 'mono', d.live || '—'))
+      if (d.at) {
+        live.appendChild(el('span', 'faint', '  ·  last deploy ' + relative(d.at)))
+      }
+      card.appendChild(live)
+
+      // Only worth saying when the attempt differs from what is live — otherwise
+      // it repeats the line above.
+      if (failed && d.ref && d.ref !== d.live) {
+        var attempt = el('p', 'deploy-line')
+        attempt.appendChild(el('span', 'faint', 'attempted '))
+        attempt.appendChild(el('span', 'mono', d.ref))
+        card.appendChild(attempt)
+      }
+
+      if (d.detail) card.appendChild(el('p', 'faint', d.detail))
       deploysEl.appendChild(card)
     })
   }

@@ -29,3 +29,7 @@ services:
       - /proc:/host/proc:ro
       # The only writable mount, and the only thing that leaves this container.
       - ${STATUS_DATA_ROOT:-/srv/status-data}:/out
+      # Read-only, and only to answer two questions: which release each site is
+      # actually serving (the `current` symlink), and how the last deploy ended.
+      - ${WWW_ROOT:-/srv/www}:/www:ro
+      - ${DEPLOY_ROOT:-/srv/deploy}:/deploy:ro

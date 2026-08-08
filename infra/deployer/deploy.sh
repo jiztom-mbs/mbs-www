@@ -13,6 +13,32 @@ set -eu
 
 SITE=$1
 SHA=$2
+STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# One JSON object per line. Written at every outcome, including the failures —
+# a log of successes only cannot answer "what broke", which is the question
+# anyone looking at a deploy log actually has.
+record() {
+    _status=$1
+    _detail=${2:-}
+    mkdir -p "${DEPLOY_ROOT:-/deploy}/log"
+    printf '{"site":"%s","ref":"%s","status":"%s","at":"%s","started":"%s","detail":"%s"}\n' \
+        "$SITE" "$(echo "$SHA" | cut -c1-7)" "$_status" \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STARTED" \
+        "$(echo "$_detail" | tr -d '"' | cut -c1-160)" \
+        >> "${DEPLOY_ROOT:-/deploy}/log/deploys.jsonl"
+}
+
+# Any exit that is not an explicit success is a failure. Trapping it means a new
+# `exit 1` added later cannot silently stop being recorded.
+_done=0
+on_exit() {
+    _code=$?
+    [ "$_done" = 1 ] && exit $_code
+    [ "$_code" != 0 ] && record failed "exited $_code"
+    exit $_code
+}
+trap on_exit EXIT
 
 DEPLOY_ROOT=${DEPLOY_ROOT:-/deploy}
 WWW_ROOT=${WWW_ROOT:-/www}
@@ -96,6 +122,8 @@ esac
 # fails one deploy instead; the previous release stays live.
 if [ "$SITE" = warehouse ] && [ ! -f "$BUILT/headers.nginx.conf" ]; then
     echo "deploy: warehouse build has no headers.nginx.conf — refusing to publish" >&2
+    record failed "build produced no CSP file"
+    _done=1
     exit 1
 fi
 
@@ -157,11 +185,14 @@ if [ "$CODE" != "200" ]; then
         ln -sfn "$PREVIOUS" current.tmp
         mv -Tf current.tmp current
         echo "deploy: rolled back to $PREVIOUS" >&2
+        record rolled_back "served HTTP $CODE, previous release restored"
     else
         # Nothing to go back to — the first deploy of this site. Leave it in place
         # and say so, rather than removing the symlink and serving nothing at all.
         echo "deploy: no previous release to roll back to; leaving $SHORT live" >&2
+        record failed "served HTTP $CODE, no previous release to restore"
     fi
+    _done=1
     exit 1
 fi
 
@@ -175,5 +206,5 @@ ls -1t | tail -n +$((KEEP_RELEASES + 1)) | while read -r old; do
     rm -rf "$old"
 done
 
-mkdir -p "$DEPLOY_ROOT/log"
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $SITE $SHORT" >> "$DEPLOY_ROOT/log/deploys.log"
+record published "HTTP $CODE"
+_done=1

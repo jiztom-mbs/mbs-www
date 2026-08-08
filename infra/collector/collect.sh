@@ -80,6 +80,36 @@ else UPTIME="$((UP_S / 60))m"; fi
 
 NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# --- Deployments -------------------------------------------------------------
+#
+# Two independent facts, and they can disagree — which is exactly why both are
+# reported rather than one being inferred from the other:
+#
+#   live      what the `current` symlink points at right now. This is the truth
+#             about what visitors are being served.
+#   last      the most recent deploy attempt and how it ended.
+#
+# A rolled-back deploy is the case that matters: `last` says failed while `live`
+# still holds the previous good release. Showing only the log would imply the site
+# is down; showing only the symlink would hide that a deploy broke.
+SITES_DIR=${SITES_DIR:-/www}
+LOG=${DEPLOY_LOG:-/deploy/log/deploys.jsonl}
+
+: > /tmp/deploys.jsonl
+for site in $(ls -1 "$SITES_DIR" 2>/dev/null); do
+    live=$(readlink "$SITES_DIR/$site/current" 2>/dev/null | sed 's|^releases/||')
+    [ -z "$live" ] && live="none"
+    # Last recorded attempt for this site, whatever its outcome.
+    last=$(grep "\"site\":\"$site\"" "$LOG" 2>/dev/null | tail -1)
+    if [ -n "$last" ]; then
+        printf '%s\n' "$last" | jq -c --arg live "$live" '. + {live: $live}' >> /tmp/deploys.jsonl 2>/dev/null || true
+    else
+        jq -cn --arg site "$site" --arg live "$live" \
+          '{site: $site, live: $live, ref: $live, status: "unknown", at: null, detail: "no deploy recorded"}' \
+          >> /tmp/deploys.jsonl
+    fi
+done
+
 # --- Containers --------------------------------------------------------------
 
 PUBLIC_ITEMS=''
@@ -133,7 +163,7 @@ DETAIL_JSON=$(jq -Rn \
             disk_used_gb: $du, disk_total_gb: $dt, disk_pct: $dp,
             load1: ($load | tonumber), uptime: $uptime},
      containers: $svcs,
-     deploys: []}' < /tmp/svc.tsv)
+     deploys: $deploys}' --argjson deploys "$(jq -sc . < /tmp/deploys.jsonl 2>/dev/null || echo '[]')" < /tmp/svc.tsv)
 
 # --- Publish atomically ------------------------------------------------------
 #
