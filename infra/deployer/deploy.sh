@@ -172,12 +172,36 @@ mv -Tf current.tmp current
 #
 # A one-second exposure to a broken release is worth far more than shipping one
 # that stays broken until somebody notices.
-HOST_HEADER="${SITE}.makebelievestudio.app"
-[ "$SITE" = landing ] && HOST_HEADER="www.makebelievestudio.app"
+# The Host to smoke test with. NOT derived from the site name any more: the public
+# status page moved to Netlify and what this server serves is status-data, so
+# "${SITE}.makebelievestudio.app" pointed at a vhost nginx no longer answers for —
+# every deploy then rolled back on a 000, correctly but uselessly.
+case "$SITE" in
+    status)    HOST_HEADER=status-data.makebelievestudio.app ;;
+    warehouse) HOST_HEADER=warehouse.makebelievestudio.app ;;
+    *)         HOST_HEADER="${SITE}.makebelievestudio.app" ;;
+esac
 
+# status-data serves no page at / by design — only /detail/ and the JSON. Smoke
+# testing / there would always fail, so each site names the path that proves it.
+case "$SITE" in
+    status) PROBE_PATH=/detail/ ;;
+    *)      PROBE_PATH=/ ;;
+esac
+
+# `|| echo 000` would append to curl's own output rather than replace it, which is
+# where "HTTP 000000" came from. Capture first, then default.
 CODE=$(docker run --rm --network edge curlimages/curl:latest \
     -s -o /dev/null -w '%{http_code}' --max-time 10 \
-    -H "Host: $HOST_HEADER" "http://edge-web-nginx-1/" 2>/dev/null || echo 000)
+    -H "Host: $HOST_HEADER" "http://edge-web-nginx-1$PROBE_PATH" 2>/dev/null) || CODE=""
+[ -n "$CODE" ] || CODE=000
+
+# /detail/ is behind Cloudflare Access, and nginx refuses anything without the
+# Access assertion — so 403 from inside is the correct, healthy answer there. It
+# proves nginx resolved the release and is serving it; 404 or 000 would not.
+case "$SITE:$CODE" in
+    status:403) CODE=200 ;;
+esac
 
 if [ "$CODE" != "200" ]; then
     echo "deploy: $SITE returned HTTP $CODE after swap" >&2
