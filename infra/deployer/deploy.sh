@@ -93,6 +93,12 @@ if [ "$SITE" = warehouse ]; then
     #                       never runs.
     #   COMMIT_REF          the footer build stamp; without it every deploy reads
     #                       "local".
+    #   COMMIT_COUNT        the footer version. node:22-alpine has no git, so the
+    #                       count cannot be worked out inside the build even though
+    #                       the full history is mounted — every deployed build
+    #                       called itself 0.1.0, a version that never moved and so
+    #                       said nothing about what was live. This host has git, so
+    #                       it counts here and passes the number in.
     : "${VITE_SUPABASE_URL:?VITE_SUPABASE_URL must be set for warehouse}"
     : "${VITE_SUPABASE_ANON_KEY:?VITE_SUPABASE_ANON_KEY must be set for warehouse}"
     docker run --rm \
@@ -101,6 +107,7 @@ if [ "$SITE" = warehouse ]; then
         -e VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
         -e EMIT_HEADERS=1 \
         -e COMMIT_REF="$SHA" \
+        -e COMMIT_COUNT="$(git -C "$WORK" rev-list --count HEAD)" \
         node:22-alpine sh -c 'npm ci --no-audit --no-fund && npm run build'
 else
     docker run --rm \
