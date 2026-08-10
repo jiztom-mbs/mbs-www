@@ -99,12 +99,21 @@ if [ "$SITE" = warehouse ]; then
     #                       called itself 0.1.0, a version that never moved and so
     #                       said nothing about what was live. This host has git, so
     #                       it counts here and passes the number in.
+    #   VITE_VAPID_PUBLIC_KEY  optional, and deliberately not required below. It
+    #                       is the public half of the Web Push pair; without it
+    #                       the app builds and runs exactly as before and the
+    #                       notifications card says push is not configured,
+    #                       rather than offering a button that fails after the
+    #                       permission prompt. Must match the VAPID_PUBLIC_KEY
+    #                       given to the send-push edge function, or every push
+    #                       is signed by a key the subscription does not trust.
     : "${VITE_SUPABASE_URL:?VITE_SUPABASE_URL must be set for warehouse}"
     : "${VITE_SUPABASE_ANON_KEY:?VITE_SUPABASE_ANON_KEY must be set for warehouse}"
     docker run --rm \
         -v "$WORK_HOST":/app -w /app \
         -e VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
         -e VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+        -e VITE_VAPID_PUBLIC_KEY="${VITE_VAPID_PUBLIC_KEY:-}" \
         -e EMIT_HEADERS=1 \
         -e COMMIT_REF="$SHA" \
         -e COMMIT_COUNT="$(git -C "$WORK" rev-list --count HEAD)" \
