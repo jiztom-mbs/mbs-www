@@ -145,5 +145,24 @@ check "missing proc: no addrs"   "$(echo "$OUT4" | jq -r '.addresses | length')"
 check "missing proc: gateway"    "$(echo "$OUT4" | jq -r '.gateway')"                 "null"
 check "missing proc: hostname"   "$(echo "$OUT4" | jq -r '.hostname')"                "unknown"
 
+# --- the fallback: route table missing, addresses must still appear ---------
+# The failure seen in production was an empty list while fib_trie was perfectly
+# readable. Losing every address is far worse than showing a few extra, so the
+# simple range rule has to carry it.
+P5="$DIR/noroute"
+mk_proc "$P5"
+rm -f "$P5/1/net/route"
+listening_tcp > "$P5/1/net/tcp"
+: > "$P5/1/net/tcp6"
+OUT5=$(PROC="$P5" HOST_NAME=mbs-ub-01 sh "$(dirname "$0")/net.sh" 2>/dev/null)
+check "no route: still finds LAN"    "$(echo "$OUT5" | jq -r '.addresses[]|select(.kind=="lan").address')"       "10.10.1.223"
+check "no route: still finds TS"     "$(echo "$OUT5" | jq -r '.addresses[]|select(.kind=="tailscale").address')" "100.96.0.2"
+check "no route: bridges still gone" "$(echo "$OUT5" | jq -r '[.addresses[]|select(.address|startswith("172."))]|length')" "0"
+check "no route: gateway null"       "$(echo "$OUT5" | jq -r '.gateway')"                                        "null"
+
+# --- HOST_NAME supplied by the caller wins ----------------------------------
+OUT6=$(PROC="$P" HOST_NAME=from-docker-info sh "$(dirname "$0")/net.sh")
+check "caller hostname wins"  "$(echo "$OUT6" | jq -r .hostname)"  "from-docker-info"
+
 printf '\n  %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

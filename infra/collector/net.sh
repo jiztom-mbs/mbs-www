@@ -25,12 +25,23 @@ PROC=${PROC:-/host/proc}
 HOSTNET="$PROC/1/net"
 SSH_PORT=${SSH_PORT:-22}
 
-# /proc/sys/kernel/hostname is UTS-namespaced: it answers for the READER, not for
-# the /proc that was mounted, so from in here it returns the container's random id
-# (06ba2e55dacb) and looks plausible. PID 1's root is the host filesystem, so its
-# /etc/hostname is the real one.
-HOST_NAME=$(cat "$PROC/1/root/etc/hostname" 2>/dev/null | head -n1 | tr -d ' \t\r') || true
-[ -n "${HOST_NAME:-}" ] || HOST_NAME=unknown
+# Three sources, because none of them works everywhere:
+#
+#   HOST_NAME    passed in by the caller. collect.sh asks the Docker daemon,
+#                which reports the host it runs on. This is the one that works.
+#   /host/etc/hostname   if the host file is mounted.
+#   /proc/1/root/...     PID 1's root is the host filesystem — but traversing it
+#                        needs ptrace permission the container does not have, so
+#                        this fails silently and is the last resort.
+#
+# NOT /proc/sys/kernel/hostname. That is UTS-namespaced: it answers for the
+# READER, not for the /proc that was mounted, so it returns the container's own
+# random id (06ba2e55dacb) — which looks entirely plausible and is wrong.
+if [ -z "${HOST_NAME:-}" ]; then
+    HOST_NAME=$(cat /host/etc/hostname 2>/dev/null || cat "$PROC/1/root/etc/hostname" 2>/dev/null || true)
+fi
+HOST_NAME=$(printf '%s' "${HOST_NAME:-}" | head -n1 | tr -d ' \t\r')
+[ -n "$HOST_NAME" ] || HOST_NAME=unknown
 
 # busybox awk has no strtonum, so hex is converted by hand. /proc reports both
 # the gateway and listening ports in hex.
@@ -63,10 +74,17 @@ HEX2DEC='function h2d(s,   i, c, d, n) {
 # so (2^32 - mask) is the size of the host part and integer division by it
 # compares exactly the network bits — busybox awk has no bitwise operators.
 ADDR_TSV=$(awk "$HEX2DEC"'
-    function le32(h) {
+    function le32(h,   a, b, c, d) {
         # /proc stores addresses little-endian: first octet in the LAST byte.
-        return h2d(substr(h,7,2)) * 16777216 + h2d(substr(h,5,2)) * 65536 \
-             + h2d(substr(h,3,2)) * 256 + h2d(substr(h,1,2))
+        # Written on one line per term rather than as one continued expression:
+        # a backslash continuation inside a function is where busybox awk and
+        # the awk on a developer machine stop agreeing, and the failure is a
+        # parse error that takes the whole program with it.
+        a = h2d(substr(h, 7, 2))
+        b = h2d(substr(h, 5, 2))
+        c = h2d(substr(h, 3, 2))
+        d = h2d(substr(h, 1, 2))
+        return a * 16777216 + b * 65536 + c * 256 + d
     }
     function ip2int(ip,   o) {
         split(ip, o, ".")
@@ -108,7 +126,37 @@ ADDR_TSV=$(awk "$HEX2DEC"'
         if (iface ~ /^(tailscale|ts)/) kind = "tailscale"
         print kind "\t" ip
     }
-' "$HOSTNET/route" "$HOSTNET/fib_trie" 2>/dev/null | sort -u || true)
+' "$HOSTNET/route" "$HOSTNET/fib_trie" | sort -u || true)
+
+# Fallback: range only, no interface attribution.
+#
+# The pass above is the better answer and the more fragile one — two input files,
+# two helper functions and integer maths, on whichever awk the base image ships.
+# When it produces nothing at all while fib_trie is plainly readable, it did not
+# find a host with no addresses; it failed. Degrading to the simpler rule shows
+# the Docker bridges again, which is untidy, but "10.10.1.223 among some noise"
+# answers the question and "No addresses found" does not.
+if [ -z "$ADDR_TSV" ] && [ -r "$HOSTNET/fib_trie" ]; then
+    ADDR_TSV=$(awk '
+        /\|--/ { ip = $2; next }
+        /host LOCAL/ {
+            if (ip == "" || ip ~ /^127\./) next
+            if (ip !~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) next
+            split(ip, o, ".")
+            if (o[1] == 169 && o[2] == 254) next
+            # Docker allocates bridges from 172.17 upwards by default. Dropping
+            # the whole of 172.16/12 would also drop a real LAN on that range,
+            # so only the .0.1 gateway addresses go, which is what a bridge end
+            # always is.
+            if (o[1] == 172 && o[2] >= 16 && o[2] <= 31 && o[3] == 0 && o[4] == 1) next
+            kind = "public"
+            if (o[1] == 10 || (o[1] == 172 && o[2] >= 16 && o[2] <= 31) || (o[1] == 192 && o[2] == 168))
+                kind = "lan"
+            if (o[1] == 100 && o[2] >= 64 && o[2] <= 127) kind = "tailscale"
+            print kind "\t" ip
+        }
+    ' "$HOSTNET/fib_trie" | sort -u || true)
+fi
 
 # Default route: destination and mask both zero, gateway little-endian hex.
 GATEWAY=$(awk "$HEX2DEC"'

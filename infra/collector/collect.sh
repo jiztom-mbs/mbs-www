@@ -89,7 +89,13 @@ NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 # DETAIL ONLY, and the assignment below is the only place it is used: an address,
 # a hostname and a live SSH port are a starting point for someone, and anyone can
 # open the public page. See the note at the top of this script.
-NETWORK_JSON=$(PROC="$PROC" SSH_PORT="${SSH_PORT:-22}" sh /usr/local/bin/net.sh 2>/dev/null \
+# The Docker daemon knows the host it runs on, and this container already holds
+# its socket. Every in-container route to the host's name is either namespaced
+# (and returns the container id) or blocked by ptrace, so this is the one that
+# actually answers.
+HOST_NAME=$(docker info --format '{{.Name}}' 2>/dev/null || true)
+
+NETWORK_JSON=$(PROC="$PROC" SSH_PORT="${SSH_PORT:-22}" HOST_NAME="$HOST_NAME" sh /usr/local/bin/net.sh \
   || echo '{"hostname":"unknown","addresses":[],"gateway":null,"ssh":{"port":22,"listening":false}}')
 
 # --- Deployments -------------------------------------------------------------
