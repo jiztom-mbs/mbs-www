@@ -56,6 +56,18 @@
         </div>
       </section>
 
+      <!--
+        Directly under Host, above Containers. When something is unreachable the
+        order you want is: is the box alive, where is it, then what is running on
+        it. A moved DHCP lease looks identical to a dead host from outside.
+      -->
+      <section>
+        <p class="section-label">Network</p>
+        <div class="stack" id="network">
+          <div class="card"><span class="muted">Loading…</span></div>
+        </div>
+      </section>
+
       <section>
         <p class="section-label">Containers</p>
         <div class="table-wrap">

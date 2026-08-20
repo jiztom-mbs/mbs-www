@@ -8,7 +8,10 @@ FROM docker:cli
 RUN apk add --no-cache jq
 
 COPY collect.sh /usr/local/bin/collect.sh
-RUN chmod +x /usr/local/bin/collect.sh
+# net.sh is separate so its /proc parsing can be run against fixtures off the
+# host — see test-net.sh. collect.sh invokes it by this path.
+COPY net.sh     /usr/local/bin/net.sh
+RUN chmod +x /usr/local/bin/collect.sh /usr/local/bin/net.sh
 
 # A plain loop rather than cron: one process, its logs go to `docker logs`, and
 # the interval is visible here instead of hidden in a crontab.

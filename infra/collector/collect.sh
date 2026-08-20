@@ -80,6 +80,18 @@ else UPTIME="$((UP_S / 60))m"; fi
 
 NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# --- Network -----------------------------------------------------------------
+#
+# Split into net.sh so the /proc parsing can be checked against fixtures without
+# being on the host — see test-net.sh. A misparse here is silent and would put a
+# plausible wrong address on the page, which is worse than showing none.
+#
+# DETAIL ONLY, and the assignment below is the only place it is used: an address,
+# a hostname and a live SSH port are a starting point for someone, and anyone can
+# open the public page. See the note at the top of this script.
+NETWORK_JSON=$(PROC="$PROC" SSH_PORT="${SSH_PORT:-22}" sh /usr/local/bin/net.sh 2>/dev/null \
+  || echo '{"hostname":"unknown","addresses":[],"gateway":null,"ssh":{"port":22,"listening":false}}')
+
 # --- Deployments -------------------------------------------------------------
 #
 # Two independent facts, and they can disagree — which is exactly why both are
@@ -155,13 +167,15 @@ DETAIL_JSON=$(jq -Rn \
   --arg now "$NOW" --argjson cpu "$CPU" \
   --argjson mu "$MEM_USED" --argjson mt "$MEM_TOTAL" --argjson mp "$MEM_PCT" \
   --argjson du "$DISK_USED" --argjson dt "$DISK_TOTAL" --argjson dp "$DISK_PCT" \
-  --arg load "$LOAD1" --arg uptime "$UPTIME" '
+  --arg load "$LOAD1" --arg uptime "$UPTIME" \
+  --argjson network "$NETWORK_JSON" '
   [inputs | split("\t")
     | {name: .[0], state: .[1], uptime: .[2], restarts: (.[3] | tonumber), image: .[4]}] as $svcs
   | {checked_at: $now,
      host: {cpu_pct: $cpu, mem_used_gb: $mu, mem_total_gb: $mt, mem_pct: $mp,
             disk_used_gb: $du, disk_total_gb: $dt, disk_pct: $dp,
             load1: ($load | tonumber), uptime: $uptime},
+     network: $network,
      containers: $svcs,
      deploys: $deploys}' --argjson deploys "$(jq -sc . < /tmp/deploys.jsonl 2>/dev/null || echo '[]')" < /tmp/svc.tsv)
 

@@ -21,6 +21,7 @@
 
   var summaryEl = document.getElementById('summary')
   var hostEl = document.getElementById('host')
+  var networkEl = document.getElementById('network')
   var containersEl = document.getElementById('containers')
   var deploysEl = document.getElementById('deploys')
   var checkedEl = document.getElementById('checked')
@@ -89,6 +90,73 @@
     extra.appendChild(el('span', 'meter-value', host.load1 != null ? String(host.load1) : '—'))
     extra.appendChild(el('span', 'faint', host.uptime ? 'up ' + host.uptime : ''))
     hostEl.appendChild(extra)
+  }
+
+  var KIND_LABEL = { lan: 'LAN', tailscale: 'Tailscale', public: 'Public' }
+
+  /**
+   * Where this box actually is.
+   *
+   * The reason this section exists: a DHCP lease moved the host and the only
+   * symptom anywhere was SSH timing out. From outside, a moved address and a
+   * dead machine look identical, and nothing on any page could tell them apart.
+   *
+   * Addresses render as buttons that copy, because the next thing anyone does
+   * with one is paste it into an ssh command — and retyping four octets read off
+   * a screen is how you end up debugging the wrong host.
+   */
+  function renderNetwork(net) {
+    networkEl.textContent = ''
+    if (!net) {
+      networkEl.appendChild(el('div', 'card', 'Network details unavailable.'))
+      return
+    }
+
+    var addrs = net.addresses || []
+    if (addrs.length === 0) {
+      // Distinct from "unavailable" above: the collector ran and found nothing,
+      // which on a host that is serving this page means the parse broke.
+      networkEl.appendChild(el('div', 'card', 'No addresses found.'))
+    }
+
+    addrs.forEach(function (a) {
+      var card = el('div', 'card net-row')
+      card.appendChild(el('span', 'card-title', KIND_LABEL[a.kind] || a.kind))
+
+      var btn = el('button', 'net-address mono')
+      btn.type = 'button'
+      btn.textContent = a.address
+      btn.title = 'Copy ' + a.address
+      btn.addEventListener('click', function () {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) return
+        navigator.clipboard.writeText(a.address).then(function () {
+          btn.textContent = 'copied'
+          setTimeout(function () {
+            btn.textContent = a.address
+          }, 900)
+        }, function () {})
+      })
+      card.appendChild(btn)
+      networkEl.appendChild(card)
+    })
+
+    var meta = el('div', 'card net-row')
+    meta.appendChild(el('span', 'card-title', 'Host'))
+    meta.appendChild(el('span', 'mono', net.hostname || 'unknown'))
+
+    var bits = []
+    if (net.gateway) bits.push('gateway ' + net.gateway)
+    if (net.ssh) {
+      // Said either way, never omitted. "SSH not listening" is the most useful
+      // line on this page when you cannot get in, and a section that quietly
+      // leaves it out reads as "probably fine".
+      bits.push(
+        (net.ssh.listening ? 'SSH listening on ' : 'SSH NOT listening on ') + net.ssh.port,
+      )
+    }
+    var down = net.ssh && net.ssh.listening === false
+    meta.appendChild(el('span', down ? 'state-down' : 'faint', bits.join('  ·  ')))
+    networkEl.appendChild(meta)
   }
 
   function renderContainers(list) {
@@ -178,6 +246,10 @@
     summaryEl.textContent = message
     hostEl.textContent = ''
     hostEl.appendChild(el('div', 'card', 'Unavailable.'))
+    // Cleared rather than left showing the last good addresses. A stale IP on a
+    // page that cannot reach the host is exactly the wrong thing to trust, and
+    // it is the reason someone is looking at this page in the first place.
+    renderNetwork(null)
     renderContainers(null)
     renderDeploys(null)
     checkedEl.textContent = ''
@@ -208,6 +280,7 @@
               ? '1 container is not running.'
               : down + ' containers are not running.'
         renderHost(data.host)
+        renderNetwork(data.network)
         renderContainers(data.containers)
         renderDeploys(data.deploys)
         checkedEl.textContent = 'Checked ' + relative(data.checked_at)
