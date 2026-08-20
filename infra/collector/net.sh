@@ -25,7 +25,12 @@ PROC=${PROC:-/host/proc}
 HOSTNET="$PROC/1/net"
 SSH_PORT=${SSH_PORT:-22}
 
-HOST_NAME=$(cat "$PROC/sys/kernel/hostname" 2>/dev/null || echo unknown)
+# /proc/sys/kernel/hostname is UTS-namespaced: it answers for the READER, not for
+# the /proc that was mounted, so from in here it returns the container's random id
+# (06ba2e55dacb) and looks plausible. PID 1's root is the host filesystem, so its
+# /etc/hostname is the real one.
+HOST_NAME=$(cat "$PROC/1/root/etc/hostname" 2>/dev/null | head -n1 | tr -d ' \t\r') || true
+[ -n "${HOST_NAME:-}" ] || HOST_NAME=unknown
 
 # busybox awk has no strtonum, so hex is converted by hand. /proc reports both
 # the gateway and listening ports in hex.
@@ -46,21 +51,64 @@ HEX2DEC='function h2d(s,   i, c, d, n) {
 # Loopback and link-local are dropped as noise. The rest are labelled rather than
 # filtered: the Tailscale address is the one that still works when the LAN lease
 # moves, and picking one for the reader would hide exactly that.
-ADDR_TSV=$(awk '
+#
+# Each address is attributed to an interface through the routing table, because
+# the label cannot be worked out from the address alone. A host running Docker
+# holds 172.17.0.1, 172.18.0.1 and one per user-defined network — all RFC1918,
+# all indistinguishable from a real LAN by range, and none of them somewhere you
+# can reach this box from. Listing them as "LAN" is worse than not listing them:
+# it buries the one address that works among five that never will.
+#
+# Matching is longest-prefix, the same rule the kernel uses. Masks are contiguous,
+# so (2^32 - mask) is the size of the host part and integer division by it
+# compares exactly the network bits — busybox awk has no bitwise operators.
+ADDR_TSV=$(awk "$HEX2DEC"'
+    function le32(h) {
+        # /proc stores addresses little-endian: first octet in the LAST byte.
+        return h2d(substr(h,7,2)) * 16777216 + h2d(substr(h,5,2)) * 65536 \
+             + h2d(substr(h,3,2)) * 256 + h2d(substr(h,1,2))
+    }
+    function ip2int(ip,   o) {
+        split(ip, o, ".")
+        return o[1] * 16777216 + o[2] * 65536 + o[3] * 256 + o[4]
+    }
+
+    # Pass 1: the routing table.
+    FNR == NR {
+        if (FNR == 1) next
+        if ($8 == "00000000") next          # default route matches everything
+        n++; rnet[n] = le32($2); rshift[n] = 4294967296 - le32($8); riface[n] = $1
+        next
+    }
+
+    # Pass 2: local addresses out of fib_trie.
     /\|--/ { ip = $2; next }
     /host LOCAL/ {
         if (ip == "" || ip ~ /^127\./) next
         if (ip !~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) next
         split(ip, o, ".")
         if (o[1] == 169 && o[2] == 254) next
+
+        # Longest prefix wins: the smallest host part.
+        a = ip2int(ip); iface = ""; best = 4294967297
+        for (i = 1; i <= n; i++) {
+            if (rshift[i] < best && int(a / rshift[i]) == int(rnet[i] / rshift[i])) {
+                best = rshift[i]; iface = riface[i]
+            }
+        }
+
+        # Container plumbing: the host end of a bridge. Real, and useless here.
+        if (iface ~ /^(docker|br-|veth|virbr|cni|flannel|kube)/) next
+
         kind = "public"
         if (o[1] == 10 || (o[1] == 172 && o[2] >= 16 && o[2] <= 31) || (o[1] == 192 && o[2] == 168))
             kind = "lan"
         # 100.64.0.0/10 is the CGNAT range Tailscale allocates from.
         if (o[1] == 100 && o[2] >= 64 && o[2] <= 127) kind = "tailscale"
+        if (iface ~ /^(tailscale|ts)/) kind = "tailscale"
         print kind "\t" ip
     }
-' "$HOSTNET/fib_trie" 2>/dev/null | sort -u || true)
+' "$HOSTNET/route" "$HOSTNET/fib_trie" 2>/dev/null | sort -u || true)
 
 # Default route: destination and mask both zero, gateway little-endian hex.
 GATEWAY=$(awk "$HEX2DEC"'

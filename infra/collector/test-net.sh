@@ -29,8 +29,12 @@ check() {
 # --- A host that looks like mbs-ub: a LAN lease, Tailscale, sshd up ----------
 mk_proc() {
     _root=$1
-    mkdir -p "$_root/1/net" "$_root/sys/kernel"
-    printf 'mbs-ub-01\n' > "$_root/sys/kernel/hostname"
+    mkdir -p "$_root/1/net" "$_root/1/root/etc" "$_root/sys/kernel"
+    # The real host name lives on PID 1's root filesystem. The sysctl below is
+    # UTS-namespaced and answers for the reader, so from inside a container it
+    # returns the container id — which looks entirely plausible and is wrong.
+    printf 'mbs-ub-01\n' > "$_root/1/root/etc/hostname"
+    printf 'some-container-id\n' > "$_root/sys/kernel/hostname"
 
     # fib_trie: the address is on the |-- line, its scope on the next, and the
     # whole table repeats under Local:.
@@ -48,6 +52,12 @@ Main:
            /32 link BROADCAST
      +-- 100.96.0.2/32 2 0 2
         |-- 100.96.0.2
+           /32 host LOCAL
+     +-- 172.17.0.0/16 2 0 2
+        |-- 172.17.0.1
+           /32 host LOCAL
+     +-- 172.18.0.0/16 2 0 2
+        |-- 172.18.0.1
            /32 host LOCAL
      +-- 127.0.0.0/8 2 0 2
         |-- 127.0.0.1
@@ -68,6 +78,9 @@ FIB
 Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
 enp1s0	00000000	01010A0A	0003	0	0	100	00000000	0	0	0
 enp1s0	000A0A0A	00000000	0001	0	0	100	00FFFFFF	0	0	0
+docker0	000011AC	00000000	0001	0	0	0	0000FFFF	0	0	0
+br-a1b2c3	000012AC	00000000	0001	0	0	0	0000FFFF	0	0	0
+tailscale0	02006064	00000000	0001	0	0	0	FFFFFFFF	0	0	0
 ROUTE
 }
 
@@ -88,11 +101,17 @@ listening_tcp > "$P/1/net/tcp"
 
 OUT=$(PROC="$P" sh "$(dirname "$0")/net.sh")
 
-check "hostname"              "$(echo "$OUT" | jq -r .hostname)"                      "mbs-ub-01"
+# Not the container id from the UTS-namespaced sysctl, which is what this
+# returned on the real host and looked entirely believable.
+check "host hostname, not container" "$(echo "$OUT" | jq -r .hostname)"               "mbs-ub-01"
 check "gateway (hex decoded)" "$(echo "$OUT" | jq -r .gateway)"                       "10.10.1.1"
 check "ssh listening"         "$(echo "$OUT" | jq -r .ssh.listening)"                 "true"
 check "ssh port"              "$(echo "$OUT" | jq -r .ssh.port)"                      "22"
 check "two addresses only"    "$(echo "$OUT" | jq -r '.addresses | length')"          "2"
+# The bug this caught on the real host: five Docker bridge gateways, every one
+# RFC1918 and indistinguishable from a real LAN by range, burying the single
+# address anyone can actually reach. Attributed by interface, not by range.
+check "docker bridges dropped" "$(echo "$OUT" | jq -r '[.addresses[]|select(.address|startswith("172."))]|length')" "0"
 check "LAN address labelled"  "$(echo "$OUT" | jq -r '.addresses[]|select(.kind=="lan").address')"       "10.10.1.223"
 check "Tailscale labelled"    "$(echo "$OUT" | jq -r '.addresses[]|select(.kind=="tailscale").address')" "100.96.0.2"
 # The three that must never appear: loopback is noise, link-local means DHCP
