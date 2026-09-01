@@ -130,6 +130,30 @@ done
 
 # --- Containers --------------------------------------------------------------
 
+# Seconds since the epoch for a Docker timestamp.
+#
+# Docker reports StartedAt as RFC3339 with nanoseconds — 2026-08-06T15:09:45.371405776Z
+# — and busybox date, which is what this Alpine image ships, rejects it. So does
+# the same string with the fraction removed, because of the trailing Z. The old
+# code took the failure as "unknown start time" and printed an em dash, so every
+# container on the page showed no uptime at all while looking perfectly healthy.
+#
+# Both branches are needed: busybox wants the input format spelled out with -D,
+# GNU date has no -D and parses it from -d alone. Verified against the real
+# container before being written here, because the last two bugs in this file
+# were both things that worked on a laptop and not in the image.
+#
+# TZ=UTC because the Z is stripped: without it, a host in a non-UTC zone would
+# read the timestamp as local and be hours out.
+epoch_of() {
+    _t=${1%%.*}
+    _t=${_t%Z}
+    [ -n "$_t" ] || { echo 0; return; }
+    TZ=UTC date -d "$_t" +%s 2>/dev/null && return 0
+    TZ=UTC date -D '%Y-%m-%dT%H:%M:%S' -d "$_t" +%s 2>/dev/null && return 0
+    echo 0
+}
+
 PUBLIC_ITEMS=''
 DETAIL_ITEMS=''
 
@@ -151,8 +175,8 @@ echo "$SERVICES" | while IFS='|' read -r cname label; do
     # Uptime from StartedAt, in whole units. Precision beyond this is noise.
     up='—'
     if [ "$state" = up ] && [ -n "$started" ]; then
-        s=$(date -u -d "$started" +%s 2>/dev/null || echo 0)
-        n=$(date -u +%s)
+        s=$(epoch_of "$started")
+        n=$(TZ=UTC date +%s)
         [ "$s" -gt 0 ] && d=$((n - s)) && {
             if [ "$d" -ge 86400 ]; then up="$((d / 86400))d"
             elif [ "$d" -ge 3600 ]; then up="$((d / 3600))h"
